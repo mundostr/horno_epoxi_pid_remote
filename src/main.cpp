@@ -3,6 +3,8 @@
 #include <DallasTemperature.h>
 #include <PID_v1.h>
 #include <TM1637Display.h>
+#include <SPI.h>
+#include <RTClib.h>
 
 #define DEBUG
 #define ONE_WIRE_BUS        4
@@ -10,11 +12,11 @@
 #define SEG7_DIO_PIN        10
 #define SEG7_CLOCK_PIN      13
 #define PWM_RANGE           255
-#define PWM_K               .75 //.075 // ajustar s/ potencia calefactor
+#define PWM_K               .75 // ajustar s/ potencia calefactor
 #define PWM_FREQ            5000
 #define PWM_RESOL           8
 #define SERIAL_BAUDS        115200
-#define DEFAULT_TIME_LIMIT  30 // mins
+#define DEFAULT_TIME_LIMIT  5 // mins
 #define DEFAULT_SETPOINT    35.0 // °C
 #define CONTROL_PERIOD      500 // ms
 #define REPORT_PERIOD       3000 // ms
@@ -34,26 +36,30 @@ uint32_t duration = DEFAULT_TIME_LIMIT * 60 * 1000;
 enum States { IDLE, INIT, HEATING, STOP };
 States currentState = INIT;
 
+DateTime startTime;
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 PID controlPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 TM1637Display display(SEG7_CLOCK_PIN, SEG7_DIO_PIN);
+RTC_DS3231 rtc;
 
 void readSensors(uint8_t index) {
     sensors.requestTemperatures();
     Input = sensors.getTempCByIndex(index);
     if ((int)Input == -127) Input = 0;
-    if ((int)Input >= DEFAULT_SETPOINT && !targetReached) {
-        targetReached = true;
-        off_timer = millis();
-    }
 }
 
 void initSystem() {
+    if (!rtc.begin()) {
+        #ifdef DEBUG
+        Serial.println("ERROR al iniciarlizar RTC");
+        #endif
+        while (1);
+    }
+
+    startTime = rtc.now();
     pidActive = true;
     targetReached = false;
-    off_timer = millis();
-    report_timer = millis();
     
     #ifdef DEBUG
     Serial.println("CONTROLADOR activo");
@@ -73,9 +79,8 @@ void handleHeating() {
 }
 
 void handleReporting() {
-    const uint32_t duration_minutes = duration / 60000;
+    const uint32_t duration_minutes = DEFAULT_TIME_LIMIT;
     
-    // displayTemperature(Input);
     display.showNumberDec(Input, true);
     
     #ifdef DEBUG
@@ -86,10 +91,18 @@ void handleReporting() {
 void stopHeating() {
     ledcWrite(0, 0);
     pidActive = false;
+    targetReached = false;
     
     #ifdef DEBUG
     Serial.println("CONTROLADOR detenido");
     #endif
+}
+
+bool limitTimeReached() {
+    DateTime currentTime = rtc.now();
+    TimeSpan elapsed = currentTime - startTime;
+    
+    return elapsed.totalseconds() >= DEFAULT_TIME_LIMIT * 60;
 }
 
 void setup() {
@@ -135,7 +148,7 @@ void loop() {
                 report_timer = millis();
             }
             
-            if (pidActive && millis() - off_timer >= duration) {
+            if (pidActive && limitTimeReached()) {
                 currentState = STOP;
             }
             break;
