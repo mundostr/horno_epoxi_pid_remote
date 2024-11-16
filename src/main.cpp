@@ -12,12 +12,12 @@
 #define SEG7_DIO_PIN        10
 #define SEG7_CLOCK_PIN      13
 #define PWM_RANGE           255
-#define PWM_K               .75 // ajustar s/ potencia calefactor
+#define PWM_K               .5 // ajustar s/ potencia calefactor
 #define PWM_FREQ            5000
 #define PWM_RESOL           8
 #define SERIAL_BAUDS        115200
-#define DEFAULT_TIME_LIMIT  5 // mins
-#define DEFAULT_SETPOINT    35.0 // °C
+#define DEFAULT_TIME_LIMIT  30 // mins -> 48 hs = 2880, 5 hs = 300
+#define DEFAULT_SETPOINT    50.0 // °C
 #define CONTROL_PERIOD      500 // ms
 #define REPORT_PERIOD       3000 // ms
 
@@ -26,10 +26,10 @@
  * Ki: alto, ajuste rápido de errores pero oscilación, bajo, arrastre de errores.
  * Kd: alto, más estabilidad pero respuesta lenta, bajo, mejor respuesta con oscilaciones.
  */
-bool pidActive, targetReached;
+bool pidActive, targetReached, toggleDisplay;
 double Setpoint, Input, Output;
 // double Kp = 5.0, Ki = 0.05, Kd = 0.5;
-double Kp = 4.0, Ki = 0.025, Kd = 0.01;
+double Kp = 3.5, Ki = 0.025, Kd = 0.01;
 uint32_t control_timer, report_timer, off_timer;
 uint32_t duration = DEFAULT_TIME_LIMIT * 60 * 1000;
 
@@ -47,6 +47,10 @@ void readSensors(uint8_t index) {
     sensors.requestTemperatures();
     Input = sensors.getTempCByIndex(index);
     if ((int)Input == -127) Input = 0;
+    if ((int)Input >= DEFAULT_SETPOINT && !targetReached) {
+        targetReached = true;
+        startTime = rtc.now();
+    }
 }
 
 void initSystem() {
@@ -59,7 +63,7 @@ void initSystem() {
 
     startTime = rtc.now();
     pidActive = true;
-    targetReached = false;
+    toggleDisplay = true;
     
     #ifdef DEBUG
     Serial.println("CONTROLADOR activo");
@@ -80,8 +84,15 @@ void handleHeating() {
 
 void handleReporting() {
     const uint32_t duration_minutes = DEFAULT_TIME_LIMIT;
-    
-    display.showNumberDec(Input, true);
+
+    if (toggleDisplay) {
+        display.showNumberDec(Input, true);
+    } else {
+        uint8_t onWord[] = { 0x3F, 0x37, 0, 0 };
+        uint8_t offWord[] = { 0x3F, 0x71, 0x71, 0 };
+        pidActive ?  display.setSegments(onWord):  display.setSegments(offWord);
+    }
+    toggleDisplay = !toggleDisplay;
     
     #ifdef DEBUG
     Serial.printf("C %.1f T %.1f L %d S %s\n", Input, Setpoint, duration_minutes, pidActive ? "ON" : "OFF");
@@ -111,7 +122,7 @@ void setup() {
     #endif
 
     sensors.begin();
-    sensors.setResolution(11);
+    sensors.setResolution(12);
     ledcSetup(0, PWM_FREQ, PWM_RESOL);
     ledcAttachPin(RELAY_PIN, 0);
     
