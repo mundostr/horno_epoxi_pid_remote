@@ -19,13 +19,13 @@
 #define CONTROL_PERIOD      500 // ms
 #define REPORT_PERIOD       3000 // ms
 
-double Setpoint, Input, Output;
 /**
  * Kp: alto, respuesta rápida pero oscilación; bajo, respuesta lenta.
  * Ki: alto, ajuste rápido de errores pero oscilación, bajo, arrastre de errores.
  * Kd: alto, más estabilidad pero respuesta lenta, bajo, mejor respuesta con oscilaciones.
  */
-bool pidActive;
+bool pidActive, targetReached;
+double Setpoint, Input, Output;
 // double Kp = 5.0, Ki = 0.05, Kd = 0.5;
 double Kp = 4.0, Ki = 0.025, Kd = 0.01;
 uint32_t control_timer, report_timer, off_timer;
@@ -43,10 +43,15 @@ void readSensors(uint8_t index) {
     sensors.requestTemperatures();
     Input = sensors.getTempCByIndex(index);
     if ((int)Input == -127) Input = 0;
+    if ((int)Input >= DEFAULT_SETPOINT && !targetReached) {
+        targetReached = true;
+        off_timer = millis();
+    }
 }
 
 void initSystem() {
     pidActive = true;
+    targetReached = false;
     off_timer = millis();
     report_timer = millis();
     
