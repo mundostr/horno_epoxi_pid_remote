@@ -19,7 +19,7 @@
 #define PWM_RESOL           8
 #define SERIAL_BAUDS        115200
 #define DEFAULT_TIME_LIMIT  30 // mins -> 48 hs = 2880, 5 hs = 300
-#define DEFAULT_SETPOINT    50.0 // °C
+#define DEFAULT_SETPOINT    30.0 // °C
 #define CONTROL_PERIOD      500 // ms
 #define REPORT_PERIOD       10000 // ms
 
