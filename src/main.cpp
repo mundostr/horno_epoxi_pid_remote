@@ -43,7 +43,7 @@ void loop() {
                 report_timer = millis();
             }
             
-            if (pidActive && limitTimeReached()) {
+            if (pidActive && elapsedTime() >= duration * 60) {
                 currentState = STOP;
             }
             break;

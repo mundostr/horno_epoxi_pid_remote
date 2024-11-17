@@ -4,11 +4,11 @@
 #include "sensors.h"
 #include "net.h"
 
-bool limitTimeReached() {
+uint32_t elapsedTime() {
     DateTime currentTime = rtc.now();
     TimeSpan elapsed = currentTime - startTime;
     
-    return elapsed.totalseconds() >= DEFAULT_TIME_LIMIT * 60;
+    return elapsed.totalseconds();
 }
 
 void initSystem() {
@@ -68,13 +68,12 @@ void handleReporting() {
 
     if (mqttClient.connected()) {
         char payload[55];
-        DateTime currentTime = rtc.now();
-        TimeSpan elapsed = currentTime - startTime;
-        uint32_t elapsedMinutes = elapsed.totalseconds() / 60;
+
+        uint32_t elapsedMinutes = elapsedTime() / 60;
         uint32_t remainingMinutes = (DEFAULT_TIME_LIMIT > elapsedMinutes) ? (DEFAULT_TIME_LIMIT - elapsedMinutes) : 0;
 
-        snprintf(payload, sizeof(payload), "{\"tem\":%.1f,\"set\":%.1f,\"dur\":%d,\"rem\":%d,\"sta\":\"%s\"}", Input, Setpoint, duration_minutes, remainingMinutes, pidActive ? "ON" : "OFF");
-        mqttClient.publish(MQTT_TOPIC, payload);
+        snprintf(payload, sizeof(payload), "{\"tem\":%.1f,\"set\":%.1f,\"dur\":%d,\"rem\":%d,\"sta\":\"%s\"}", Input, Setpoint, duration_minutes, pidActive ? remainingMinutes : 0, pidActive ? "ON" : "OFF");
+        mqttClient.publish(MQTT_REPORT_TOPIC, payload);
     }
     
     #ifdef DEBUG
