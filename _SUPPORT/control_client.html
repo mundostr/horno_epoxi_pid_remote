@@ -29,7 +29,7 @@
             font-size: 200%;
             margin-top: 1em;
             font-weight: bold;
-            text-align: center;
+            text-align: left;
         }
 
         #currentTemp {
@@ -41,6 +41,10 @@
         #temperatureChart {
             margin-top: 2em;
             max-height: 400px;
+        }
+
+        .set-field {
+            width: 120px;
         }
     </style>
 </head>
@@ -59,28 +63,48 @@
                 <span id="ovenPii">I</span> |
                 <span id="ovenPid">D</span>
             </p>
+        </div>
 
+        <div class="row">
+            <form id="ovenControlForm" class="row row-cols-lg-auto g-3">
+                <select id="configOption" class="form-select" aria-label="Settings" style="width: 160px; margin-left: 1em; margin-right: 1em;">
+                    <option value="STA" selected>Estado</option>
+                    <option value="SET">Setpoint</option>
+                    <option value="DUR">Timer</option>
+                    <option value="PIP">PID (Kp)</option>
+                    <option value="PII">PID (Ki)</option>
+                    <option value="PID">PID (Kd)</option>
+                </select>
+
+                <input class="form-control" type="text" id="configValue" style="width: 64px; margin-right: 1em;">
+                      
+                <button type="submit" class="btn btn-success">Setear</button>
+            </form>
+        </div>
+        
+        <div class="row">
             <button id="status" class="btn" style="width: 100%;" disabled>Conectando a broker MQTT...</button>
         </div>
 
         <div class="row">
             <div class="col-12 col-md-3">
-                <!-- <p class="info">
-                    <span id="ovenState">Estado</span> | 
-                    <span id="ovenTarget">Setpoint</span>
-                </p>
-                
-                <p class="info">
-                    <span id="ovenTimer">Timer</span> | 
-                    <span id="ovenElapsed">Resta</span>
-                </p> -->
-
                 <p id="currentTemp">0</p>
             </div>
 
             <div class="col-12 col-md-9">
                 <canvas id="temperatureChart"></canvas>
             </div>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Horno Epoxi II</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            
+            <div class="toast-body" id="liveToastBody" style="background-color: #333;"></div>
         </div>
     </div>
 
@@ -96,6 +120,9 @@
         const client = mqtt.connect(brokerUrl, { clientId: clientId, keepalive: 30 });
 
         const statusElement = document.getElementById("status");
+        const controlForm = document.getElementById("ovenControlForm");
+        const liveToastDiv = document.getElementById("liveToast");
+        const liveToast = bootstrap.Toast.getOrCreateInstance(liveToastDiv);
 
         const ctx = document.getElementById("temperatureChart").getContext("2d");
         const temperatureChart = new Chart(ctx, {
@@ -189,6 +216,23 @@
             statusElement.textContent = "Reconectando";
             statusElement.classList.remove("btn-success");
             statusElement.classList.add("btn-warning");
+        });
+    
+        controlForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            const command = document.getElementById("configOption").value;
+            const value = document.getElementById("configValue").value;
+            if (value !== "") {
+                const payload = `${command}${value.toUpperCase()}`;
+    
+                client.publish("iduxnet/epoxi2/config", payload, (err) => {
+                    if (err) return console.error("ERROR al enviar config:", err);
+                    document.getElementById("liveToastBody").innerHTML = `Seteo enviado (${payload})`;
+                    liveToast.show();
+                    console.log(`Enviado ${payload}`);
+                });
+            }
         });
     </script>
 </body>

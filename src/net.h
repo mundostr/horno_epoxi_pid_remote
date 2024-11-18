@@ -53,13 +53,19 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     } else if (command == "STA") {
         value.toUpperCase();
         if (value == "ON") {
+            pidActive = true;
             startTime = rtc.now();
+            control_timer = millis();
+            report_timer = millis();
+            targetReached = false;
+
             currentState = HEATING;
         } else if (value == "OFF") {
             currentState = STOP;
         }
     } else if (command == "DUR") {
         duration = value.toInt();
+        startTime = rtc.now();
     } else if (command == "PIP") {
         Kp = value.toDouble();
         controlPID.SetTunings(Kp, Ki, Kd);

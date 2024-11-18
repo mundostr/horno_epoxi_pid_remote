@@ -30,8 +30,8 @@
  */
 bool pidActive, targetReached, toggleDisplay;
 double Setpoint, Input, Output;
-double Kp = 3.0, Ki = 0.1, Kd = 0.01;
-// double Kp = 5.0, Ki = 5.0, Kd = 0.5;
+// double Kp = 3.0, Ki = 0.1, Kd = 0.01;
+double Kp = 4.0, Ki = 0.5, Kd = 2.0;
 uint32_t control_timer, report_timer, off_timer;
 int duration = DEFAULT_TIME_LIMIT;
 
