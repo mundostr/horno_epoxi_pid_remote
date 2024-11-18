@@ -14,13 +14,13 @@
 #define SEG7_CLOCK_PIN      13
 
 #define PWM_RANGE           255
-#define PWM_K               .5 // ajustar s/ potencia calefactor
+#define PWM_K               .125 // ajustar s/ potencia calefactor
 #define PWM_FREQ            5000
 #define PWM_RESOL           8
 #define SERIAL_BAUDS        115200
 #define DEFAULT_TIME_LIMIT  30 // mins -> 48 hs = 2880, 5 hs = 300
-#define DEFAULT_SETPOINT    30.0 // °C
-#define CONTROL_PERIOD      500 // ms
+#define DEFAULT_SETPOINT    35.0 // °C
+#define CONTROL_PERIOD      1000 // ms
 #define REPORT_PERIOD       10000 // ms
 
 /**
@@ -31,6 +31,7 @@
 bool pidActive, targetReached, toggleDisplay;
 double Setpoint, Input, Output;
 double Kp = 3.0, Ki = 0.1, Kd = 0.01;
+// double Kp = 5.0, Ki = 5.0, Kd = 0.5;
 uint32_t control_timer, report_timer, off_timer;
 int duration = DEFAULT_TIME_LIMIT;
 

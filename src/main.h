@@ -30,6 +30,7 @@ void initSystem() {
     Setpoint = DEFAULT_SETPOINT;
     controlPID.SetMode(AUTOMATIC);
     controlPID.SetOutputLimits(0, PWM_RANGE * PWM_K);
+    controlPID.SetSampleTime(CONTROL_PERIOD);
 
     display.setBrightness(3); // 0 a 7
 
@@ -46,6 +47,7 @@ void handleHeating() {
     if (pidActive) {
         readSensors(0);
         controlPID.Compute();
+        if (Input > (Setpoint * 0.85)) Output *= 0.5;
         ledcWrite(0, (int)Output);
         
         #ifdef DEBUG
@@ -55,29 +57,29 @@ void handleHeating() {
 }
 
 void handleReporting() {
-    const uint32_t duration_minutes = DEFAULT_TIME_LIMIT;
+    const uint32_t duration_minutes = duration;
 
     if (toggleDisplay) {
         display.showNumberDec(Input, true);
     } else {
         uint8_t onWord[] = { 0x3F, 0x37, 0, 0 };
         uint8_t offWord[] = { 0x3F, 0x71, 0x71, 0 };
-        pidActive ?  display.setSegments(onWord):  display.setSegments(offWord);
+        pidActive ? display.setSegments(onWord): display.setSegments(offWord);
     }
     toggleDisplay = !toggleDisplay;
 
     if (mqttClient.connected()) {
-        char payload[55];
+        char payload[100];
 
         uint32_t elapsedMinutes = elapsedTime() / 60;
         uint32_t remainingMinutes = (DEFAULT_TIME_LIMIT > elapsedMinutes) ? (DEFAULT_TIME_LIMIT - elapsedMinutes) : 0;
 
-        snprintf(payload, sizeof(payload), "{\"tem\":%.1f,\"set\":%.1f,\"dur\":%d,\"rem\":%d,\"sta\":\"%s\"}", Input, Setpoint, duration_minutes, pidActive ? remainingMinutes : 0, pidActive ? "ON" : "OFF");
+        snprintf(payload, sizeof(payload), "{\"tem\":%.1f,\"set\":%.1f,\"dur\":%d,\"rem\":%d,\"sta\":\"%s\",\"p\":\"%.2f\",\"i\":\"%.2f\",\"d\":\"%.2f\"}", Input, Setpoint, duration_minutes, pidActive ? remainingMinutes : 0, pidActive ? "ON" : "OFF", Kp, Ki, Kd);
         mqttClient.publish(MQTT_REPORT_TOPIC, payload);
     }
     
     #ifdef DEBUG
-    Serial.printf("C %.1f T %.1f L %d S %s\n", Input, Setpoint, duration_minutes, pidActive ? "ON" : "OFF");
+    Serial.printf("C %.1f T %.1f L %d S %s P %.2f I %.2f D %.2f\n", Input, Setpoint, duration_minutes, pidActive ? "ON" : "OFF", Kp, Ki, Kd);
     #endif
 }
 

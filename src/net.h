@@ -60,6 +60,15 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         }
     } else if (command == "DUR") {
         duration = value.toInt();
+    } else if (command == "PIP") {
+        Kp = value.toDouble();
+        controlPID.SetTunings(Kp, Ki, Kd);
+    } else if (command == "PII") {
+        Ki = value.toDouble();
+        controlPID.SetTunings(Kp, Ki, Kd);
+    } else if (command == "PID") {
+        Kd = value.toDouble();
+        controlPID.SetTunings(Kp, Ki, Kd);
     }
 }
 

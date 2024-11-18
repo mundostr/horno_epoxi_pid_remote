@@ -40,6 +40,7 @@
         
         #temperatureChart {
             margin-top: 2em;
+            max-height: 400px;
         }
     </style>
 </head>
@@ -48,14 +49,23 @@
     <div class="container-fluid p-4">
         <div class="row">
             <h1><b>Horno Epoxi II</b></h1>
-            <h2><b>Control de Temperatura</b></h2>
             
+            <p class="info">
+                <span id="ovenState">Estado</span> |
+                <span id="ovenTarget">Setpoint</span> |
+                <span id="ovenTimer">Timer</span> |
+                <span id="ovenElapsed">Resta</span> |
+                <span id="ovenPip">P</span> |
+                <span id="ovenPii">I</span> |
+                <span id="ovenPid">D</span>
+            </p>
+
             <button id="status" class="btn" style="width: 100%;" disabled>Conectando a broker MQTT...</button>
         </div>
 
         <div class="row">
-            <div class="col-12 col-md-4">
-                <p class="info">
+            <div class="col-12 col-md-3">
+                <!-- <p class="info">
                     <span id="ovenState">Estado</span> | 
                     <span id="ovenTarget">Setpoint</span>
                 </p>
@@ -63,12 +73,12 @@
                 <p class="info">
                     <span id="ovenTimer">Timer</span> | 
                     <span id="ovenElapsed">Resta</span>
-                </p>
+                </p> -->
 
                 <p id="currentTemp">0</p>
             </div>
 
-            <div class="col-12 col-md-8">
+            <div class="col-12 col-md-9">
                 <canvas id="temperatureChart"></canvas>
             </div>
         </div>
@@ -121,7 +131,7 @@
 
         client.on("connect", () => {
             console.log("Conectado");
-            statusElement.textContent = "Conectado";
+            statusElement.textContent = "Conectado a broker";
             statusElement.classList.remove("btn-warning");
             statusElement.classList.add("btn-success");
             
@@ -141,6 +151,10 @@
                 document.getElementById("ovenTarget").innerHTML = `Setpoint ${payload.set}`;
                 document.getElementById("ovenTimer").innerHTML = `Timer ${payload.dur}`;
                 document.getElementById("ovenElapsed").innerHTML = `Restan ${payload.rem}`;
+                document.getElementById("ovenPip").innerHTML = `P ${payload.p}`;
+                document.getElementById("ovenPii").innerHTML = `I ${payload.i}`;
+                document.getElementById("ovenPid").innerHTML = `D ${payload.d}`;
+
                 document.getElementById("ovenState").style.color = payload.sta === "OFF" ? "#32CD32": "#FFCC00";
 
                 const now = new Date().toLocaleTimeString();
