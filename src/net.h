@@ -13,7 +13,7 @@
 #define MQTT_BROKER         "broker.emqx.io"
 #define MQTT_PORT           1883
 #define MQTT_USER           "cperren"
-#define MQTT_PASSWORD       "DieBill666**"
+#define MQTT_PASSWORD       "abc123"
 #define MQTT_CLIENT_ID      "iduxnetepoxi2"
 #define MQTT_REPORT_TOPIC   "iduxnet/epoxi2/temperature"
 #define MQTT_COMMAND_TOPIC  "iduxnet/epoxi2/config"
