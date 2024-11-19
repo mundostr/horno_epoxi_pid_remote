@@ -78,12 +78,12 @@
 
                 <input class="form-control" type="text" id="configValue" style="width: 64px; margin-right: 1em;">
                       
-                <button type="submit" class="btn btn-success" style="width: 100px;">Setear</button>
+                <button id="setButton" type="submit" class="btn btn-success" style="width: 100px;">Setear</button>
             </form>
         </div>
         
         <div class="row">
-            <button id="status" class="btn" style="width: 100%;" disabled>Conectando a broker MQTT...</button>
+            <button id="status" class="btn btn-warning" style="width: 100%;" disabled>Conectando al broker</button>
         </div>
 
         <div class="row">
@@ -114,6 +114,10 @@
     <script>
         // https://www.emqx.com/en/blog/mqtt-js-tutorial
 
+        let ovenTimeout;
+        let brokerConnected = false;
+        let ovenResponding = false;
+
         const brokerUrl = "ws://broker.emqx.io:8083/mqtt";
         const topic = "iduxnet/epoxi2/temperature";
         const clientId = "hornoepoxi_web_" + Math.random().toString(16).slice(2);
@@ -123,6 +127,7 @@
         const controlForm = document.getElementById("ovenControlForm");
         const liveToastDiv = document.getElementById("liveToast");
         const liveToast = bootstrap.Toast.getOrCreateInstance(liveToastDiv);
+        const setButton = document.getElementById("setButton");
 
         const ctx = document.getElementById("temperatureChart").getContext("2d");
         const temperatureChart = new Chart(ctx, {
@@ -156,11 +161,27 @@
             }
         });
 
+        const updateStatusButton = () => {
+            if (!brokerConnected) {
+                statusElement.textContent = "Conectando al broker";
+                statusElement.className = "btn btn-warning";
+                setButton.disabled = true;
+            } else if (!ovenResponding) {
+                statusElement.textContent = "Conectando al horno";
+                statusElement.className = "btn btn-info";
+                setButton.disabled = true;
+            } else {
+                statusElement.textContent = "Horno conectado";
+                statusElement.className = "btn btn-success";
+                setButton.disabled = false;
+            }
+        }
+
         client.on("connect", () => {
             console.log("Conectado");
-            statusElement.textContent = "Conectado a broker";
-            statusElement.classList.remove("btn-warning");
-            statusElement.classList.add("btn-success");
+
+            brokerConnected = true;
+            updateStatusButton();
             
             client.subscribe(topic, (err) => {
                 if (err) return console.error("ERROR: ", err);
@@ -194,28 +215,37 @@
                 }
 
                 temperatureChart.update();
+                
+                clearTimeout(ovenTimeout);
+                ovenResponding = true;
+                updateStatusButton();
+                
+                ovenTimeout = setTimeout(() => {
+                    ovenResponding = false;
+                    updateStatusButton();
+                }, 12000);
             }
         });
 
         client.on("error", (err) => {
+            brokerConnected = false;
+            updateStatusButton();
+
             console.error("MQTT error:", err);
-            statusElement.textContent = "Error";
-            statusElement.classList.remove("btn-success");
-            statusElement.classList.add("btn-warning");
         });
 
         client.on("offline", () => {
+            brokerConnected = false;
+            updateStatusButton();
+            
             console.warn("MQTT offline");
-            statusElement.textContent = "Offline";
-            statusElement.classList.remove("btn-success");
-            statusElement.classList.add("btn-warning");
         });
 
         client.on("reconnect", () => {
+            brokerConnected = false;
+            updateStatusButton();
+
             console.log("Reconectando...");
-            statusElement.textContent = "Reconectando";
-            statusElement.classList.remove("btn-success");
-            statusElement.classList.add("btn-warning");
         });
     
         controlForm.addEventListener("submit", (event) => {
