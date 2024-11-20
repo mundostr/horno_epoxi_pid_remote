@@ -12,6 +12,9 @@ uint32_t elapsedTime() {
 }
 
 void initSystem() {
+    pinMode(GPIO_NUM_2, OUTPUT);
+    digitalWrite(GPIO_NUM_2, LOW);
+    
     if (!rtc.begin()) {
         digitalWrite(GPIO_NUM_2, LOW);
         
@@ -24,6 +27,7 @@ void initSystem() {
 
     sensors.begin();
     sensors.setResolution(11);
+    
     ledcSetup(0, PWM_FREQ, PWM_RESOL);
     ledcAttachPin(RELAY_PIN, 0);
     
@@ -41,19 +45,6 @@ void initSystem() {
     #ifdef DEBUG
     Serial.println("CONTROLADOR activo");
     #endif
-}
-
-void handleHeating() {
-    if (pidActive) {
-        readSensors(0);
-        controlPID.Compute();
-        if (Input > (Setpoint * 0.85)) Output *= 0.5;
-        ledcWrite(0, (int)Output);
-        
-        #ifdef DEBUG
-        Serial.printf("PWM: %d\n", (int)Output);
-        #endif
-    }
 }
 
 void handleReporting() {

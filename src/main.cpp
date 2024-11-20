@@ -8,12 +8,15 @@ void setup() {
     Serial.begin(SERIAL_BAUDS);
     #endif
 
-    pinMode(GPIO_NUM_2, OUTPUT);
-    digitalWrite(GPIO_NUM_2, LOW);
+    initSystem();
 
-    wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(3000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWiFi));
-    mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(3000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
-        
+    wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(NET_RECONNECT_PERIOD), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWiFi));
+    mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(NET_RECONNECT_PERIOD), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
+    temperatureControlTimer = xTimerCreate("sensorTimer", pdMS_TO_TICKS(CONTROL_PERIOD), pdTRUE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(controlTemperature));
+    reportTimer = xTimerCreate("reportTimer", pdMS_TO_TICKS(REPORT_PERIOD), pdTRUE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(handleReporting));
+    xTimerStop(temperatureControlTimer, 0);
+    xTimerStop(reportTimer, 0);
+
     WiFi.onEvent(WiFiEvent);
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
     mqttClient.onConnect(onMqttConnect);
@@ -24,33 +27,20 @@ void setup() {
 }
 
 void loop() {
-    /* switch (currentState) {
+    switch (currentState) {
         case IDLE: {
-            if (millis() - report_timer >= REPORT_PERIOD) {
-                readSensors(0);
-                handleReporting();
-                report_timer = millis();
-            }
+            if (xTimerIsTimerActive(temperatureControlTimer) == pdFALSE) xTimerStart(temperatureControlTimer, 0);
             break;
         }
 
         case INIT: {
-            initSystem();
+            if (xTimerIsTimerActive(temperatureControlTimer) == pdFALSE) xTimerStart(temperatureControlTimer, 0);
+            if (xTimerIsTimerActive(reportTimer) == pdFALSE) xTimerStart(reportTimer, 0);
             currentState = HEATING;
             break;
         }
         
         case HEATING: {
-            if (millis() - control_timer >= CONTROL_PERIOD) {
-                handleHeating();
-                control_timer = millis();
-            }
-
-            if (millis() - report_timer >= REPORT_PERIOD) {
-                handleReporting();
-                report_timer = millis();
-            }
-            
             if (pidActive && elapsedTime() >= duration * 60) {
                 currentState = STOP;
             }
@@ -62,5 +52,5 @@ void loop() {
             currentState = IDLE;
             break;
         }
-    } */
+    }
 }

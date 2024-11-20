@@ -22,8 +22,7 @@ extern "C"
 #define MQTT_COMMAND_TOPIC      "iduxnet/epoxi2/config"
 
 AsyncMqttClient mqttClient;
-TimerHandle_t mqttReconnectTimer;
-TimerHandle_t wifiReconnectTimer;
+TimerHandle_t mqttReconnectTimer, wifiReconnectTimer;
 
 void connectToWiFi() {
     #ifdef DEBUG
@@ -99,10 +98,8 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
         value.toUpperCase();
         if (value == "ON") {
             pidActive = true;
-            startTime = rtc.now();
-            control_timer = millis();
-            report_timer = millis();
             targetReached = false;
+            startTime = rtc.now();
 
             currentState = HEATING;
         } else if (value == "OFF") {

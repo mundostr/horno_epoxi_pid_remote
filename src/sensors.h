@@ -17,3 +17,17 @@ void readSensors(uint8_t index) {
         startTime = rtc.now();
     }
 }
+
+void controlTemperature(TimerHandle_t xTimer) {
+    readSensors(0);
+
+    if (pidActive) {
+        controlPID.Compute();
+        if (Input > (Setpoint * 0.85)) Output *= 0.5;
+        ledcWrite(0, (int)Output);
+        
+        #ifdef DEBUG
+        Serial.printf("PWM: %d\n", (int)Output);
+        #endif
+    }
+}
