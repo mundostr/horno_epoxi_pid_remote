@@ -10,13 +10,15 @@ void setup() {
 
     pinMode(GPIO_NUM_2, OUTPUT);
     digitalWrite(GPIO_NUM_2, LOW);
-
+    
+    WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
+    WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
+    WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
     connectWiFi();
-    connectMQTT();
 }
 
 void loop() {
-    switch (currentState) {
+    /* switch (currentState) {
         case IDLE: {
             if (millis() - report_timer >= REPORT_PERIOD) {
                 readSensors(0);
@@ -54,7 +56,7 @@ void loop() {
             currentState = IDLE;
             break;
         }
-    }
-
+    } */
+   
     mqttClient.loop();
 }

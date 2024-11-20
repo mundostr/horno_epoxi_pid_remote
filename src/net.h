@@ -15,30 +15,44 @@
 #define MQTT_USER           "cperren"
 #define MQTT_PASSWORD       "abc123"
 #define MQTT_CLIENT_ID      "iduxnetepoxi2"
+#define MQTT_ACK_TOPIC      "iduxnet/epoxi2/ack"
 #define MQTT_REPORT_TOPIC   "iduxnet/epoxi2/temperature"
 #define MQTT_COMMAND_TOPIC  "iduxnet/epoxi2/config"
+#define MQTT_VERIFY_FREQ    30000
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
+TaskHandle_t mqttTaskHandle;
+
+void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+    #ifdef DEBUG
+    Serial.println("WIFI conectado");
+    #endif
+}
+
+void mqttTask(void* parameters);
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
+    digitalWrite(GPIO_NUM_2, HIGH);
+    xTaskCreate(mqttTask, "mqttTask", 4 * 1024, NULL, 1, &mqttTaskHandle);
+
+    #ifdef DEBUG
+    Serial.print("IP ");
+    Serial.println(WiFi.localIP());
+    #endif
+}
+
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+    digitalWrite(GPIO_NUM_2, LOW);
+
+    #ifdef DEBUG
+    Serial.println("WIFI desconectado");
+    #endif
+
+    WiFi.reconnect();
+}
 
 void connectWiFi() {
-    #ifdef DEBUG
-    Serial.print("Conectando a la red ");
-    #endif
-    
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        
-        #ifdef DEBUG
-        Serial.print(".");
-        #endif
-    }
-
-    #ifdef DEBUG
-    Serial.println(" OK!");
-    #endif
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -83,25 +97,32 @@ void connectMQTT() {
     mqttClient.setCallback(mqttCallback);
     
     while (!mqttClient.connected()) {
-        #ifdef DEBUG
-        Serial.print("Conectando a servidor MQTT ...");
-        #endif
-
         if (mqttClient.connect("iduxnetepoxi2")) {
             digitalWrite(GPIO_NUM_2, HIGH);
             mqttClient.subscribe(MQTT_COMMAND_TOPIC);
+
+            mqttClient.publish(MQTT_ACK_TOPIC, "conectado");
             
             #ifdef DEBUG
-            Serial.println(" OK!");
+            Serial.println("Broker MQTT conectado");
             #endif
         } else {
             #ifdef DEBUG
-            Serial.print(" ERROR: ");
-            Serial.print(mqttClient.state());
-            Serial.println(" (reintento en 5 segs)");
+            Serial.print("Broker MQTT desconectado");
             #endif
             
-            delay(5000);
+            delay(3000);
+        }
+    }
+}
+
+void mqttTask(void* parameters) {
+    connectMQTT();
+
+    for(;;) {
+        while (true) {
+            if (!mqttClient.connected()) connectMQTT();
+            vTaskDelay(pdMS_TO_TICKS(MQTT_VERIFY_FREQ));
         }
     }
 }
