@@ -10,11 +10,17 @@ void setup() {
 
     pinMode(GPIO_NUM_2, OUTPUT);
     digitalWrite(GPIO_NUM_2, LOW);
-    
-    WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
-    WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
-    WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
-    connectWiFi();
+
+    wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(3000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWiFi));
+    mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(3000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
+        
+    WiFi.onEvent(WiFiEvent);
+    mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
+    mqttClient.onConnect(onMqttConnect);
+    mqttClient.onDisconnect(onMqttDisconnect);
+    mqttClient.onMessage(onMqttMessage);
+
+    connectToWiFi();
 }
 
 void loop() {
@@ -57,6 +63,4 @@ void loop() {
             break;
         }
     } */
-   
-    mqttClient.loop();
 }

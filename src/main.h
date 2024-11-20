@@ -75,7 +75,7 @@ void handleReporting() {
         uint32_t remainingMinutes = (DEFAULT_TIME_LIMIT > elapsedMinutes) ? (DEFAULT_TIME_LIMIT - elapsedMinutes) : 0;
 
         snprintf(payload, sizeof(payload), "{\"tem\":%.1f,\"set\":%.1f,\"dur\":%d,\"rem\":%d,\"sta\":\"%s\",\"p\":\"%.2f\",\"i\":\"%.2f\",\"d\":\"%.2f\"}", Input, Setpoint, duration_minutes, pidActive ? remainingMinutes : 0, pidActive ? "ON" : "OFF", Kp, Ki, Kd);
-        mqttClient.publish(MQTT_REPORT_TOPIC, payload);
+        mqttClient.publish(MQTT_REPORT_TOPIC, 0, false, payload);
     }
     
     #ifdef DEBUG
