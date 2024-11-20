@@ -100,9 +100,10 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
             pidActive = true;
             targetReached = false;
             startTime = rtc.now();
-
             currentState = HEATING;
         } else if (value == "OFF") {
+            pidActive = false;
+            targetReached = false;
             currentState = STOP;
         }
     } else if (command == "DUR") {
