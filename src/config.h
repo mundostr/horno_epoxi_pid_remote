@@ -34,8 +34,8 @@ double Setpoint, Input, Output;
 double Kp = 4.0, Ki = 0.5, Kd = 2.0; // double Kp = 3.0, Ki = 0.1, Kd = 0.01;
 int duration = DEFAULT_TIME_LIMIT;
 
-enum States { IDLE, INIT, HEATING, STOP };
-States currentState = INIT;
+enum States { HEATING, STOP };
+States currentState = HEATING;
 DateTime startTime;
 PID controlPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 TM1637Display display(SEG7_CLOCK_PIN, SEG7_DIO_PIN);
