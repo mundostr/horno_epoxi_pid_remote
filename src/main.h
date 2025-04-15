@@ -4,7 +4,7 @@
 #include "sensors.h"
 #include "net.h"
 
-uint32_t elapsedTime() {
+uint32_t elapsedSeconds() {
     DateTime currentTime = rtc.now();
     TimeSpan elapsed = currentTime - startTime;
     
@@ -57,8 +57,6 @@ void handleHeating() {
 }
 
 void handleReporting() {
-    const uint32_t duration_minutes = duration;
-
     if (toggleDisplay) {
         display.showNumberDec(Input, true);
     } else {
@@ -71,15 +69,15 @@ void handleReporting() {
     if (mqttClient.connected()) {
         char payload[100];
 
-        uint32_t elapsedMinutes = elapsedTime() / 60;
-        uint32_t remainingMinutes = (DEFAULT_TIME_LIMIT > elapsedMinutes) ? (DEFAULT_TIME_LIMIT - elapsedMinutes) : 0;
+        uint32_t elapsedMinutes = elapsedSeconds() / 60;
+        uint32_t remainingMinutes = (duration > elapsedMinutes) ? (duration - elapsedMinutes) : 0;
 
-        snprintf(payload, sizeof(payload), "{\"tem\":%.1f,\"set\":%.1f,\"dur\":%d,\"rem\":%d,\"sta\":\"%s\",\"p\":\"%.2f\",\"i\":\"%.2f\",\"d\":\"%.2f\"}", Input, Setpoint, duration_minutes, pidActive ? remainingMinutes : 0, pidActive ? "ON" : "OFF", Kp, Ki, Kd);
+        snprintf(payload, sizeof(payload), "{\"tem\":%.1f,\"set\":%.1f,\"dur\":%d,\"rem\":%d,\"sta\":\"%s\",\"p\":\"%.2f\",\"i\":\"%.2f\",\"d\":\"%.2f\"}", Input, Setpoint, duration, pidActive ? remainingMinutes : 0, pidActive ? "ON" : "OFF", Kp, Ki, Kd);
         mqttClient.publish(MQTT_REPORT_TOPIC, payload);
     }
     
     #ifdef DEBUG
-    Serial.printf("C %.1f T %.1f L %d S %s P %.2f I %.2f D %.2f\n", Input, Setpoint, duration_minutes, pidActive ? "ON" : "OFF", Kp, Ki, Kd);
+    Serial.printf("C %.1f T %.1f L %d S %s P %.2f I %.2f D %.2f\n", Input, Setpoint, duration, pidActive ? "ON" : "OFF", Kp, Ki, Kd);
     #endif
 }
 
